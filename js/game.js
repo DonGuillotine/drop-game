@@ -15,6 +15,12 @@ var game = new Phaser.Game(config);
 
 function preload() {
     this.load.image('greenFlower', 'assets/greenFlower.png');
+    this.load.image('blueFlower', 'assets/blueFlower.png');
+    this.load.image('goldFlower', 'assets/goldFlower.png');
+    
+    this.load.audio('collectSound', 'assets/sounds/collect.mp3');
+    this.load.audio('missSound', 'assets/sounds/miss.mp3');
+    this.load.audio('bgMusic', 'assets/sounds/bgMusic.mp3');
 }
 
 function create() {
@@ -54,13 +60,27 @@ function update() {
 
 function spawnItem() {
     var x = Phaser.Math.Between(50, 750);
-    var newItem = this.itemsGroup.create(x, 0, 'greenFlower');
-    newItem.setInteractive();
+    var itemType = Phaser.Math.Between(1, 10);
 
+    var newItem;
+
+    if (itemType <= 7) {
+        newItem = this.itemsGroup.create(x, 0, 'greenFlower');
+        newItem.points = 10;
+    } else if (itemType <= 9) {
+        newItem = this.itemsGroup.create(x, 0, 'blueFlower');
+        newItem.points = 50;
+        newItem.setScale(0.7);
+    } else {
+        newItem = this.itemsGroup.create(x, 0, 'goldFlower');
+        newItem.points = 100;
+        newItem.setScale(0.9);
+        newItem.specialEffect = 'freezeTimer';
+    }
+
+    newItem.setInteractive();
     var baseSpeed = 50 + (30 - this.timer) * 5;
     var fallSpeed = Phaser.Math.Between(baseSpeed, baseSpeed + 50);
-
-    newItem.setScale(0.5);
     newItem.setVelocityY(fallSpeed);
 
     newItem.on('pointerdown', function () {
@@ -69,8 +89,12 @@ function spawnItem() {
 }
 
 function collectItem(item) {
-    this.score += 10;
+    this.score += item.points;
     this.scoreText.setText('Score: ' + this.score);
+
+    if (item.specialEffect === 'freezeTimer') {
+        this.freezeTimer();
+    }
 
     var particles = this.add.particles('greenFlower');
     var emitter = particles.createEmitter({
@@ -101,4 +125,13 @@ function endGame() {
     this.time.delayedCall(3000, function () {
         this.scene.restart();
     }, [], this);
+}
+
+function freezeTimer() {
+    this.time.addEvent({
+        delay: 3000,
+        callback: function () {
+        },
+        callbackScope: this
+    });
 }
