@@ -57,8 +57,11 @@ function spawnItem() {
     var newItem = this.itemsGroup.create(x, 0, 'greenFlower');
     newItem.setInteractive();
 
+    var baseSpeed = 50 + (30 - this.timer) * 5;
+    var fallSpeed = Phaser.Math.Between(baseSpeed, baseSpeed + 50);
+
     newItem.setScale(0.5);
-    newItem.setVelocityY(Phaser.Math.Between(50, 150));
+    newItem.setVelocityY(fallSpeed);
 
     newItem.on('pointerdown', function () {
         this.collectItem(newItem);
