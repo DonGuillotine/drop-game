@@ -8,6 +8,13 @@ var config = {
         preload: preload,
         create: create,
         update: update
+    },
+    physics: {
+        default: 'arcade',
+        arcade: {
+            gravity: { y: 200 },
+            debug: false
+        }
     }
 };
 
@@ -18,13 +25,27 @@ function preload() {
     this.load.image('blueFlower', 'assets/blueFlower.png');
     this.load.image('goldFlower', 'assets/goldFlower.png');
     
-    this.load.audio('collectSound', 'assets/sounds/collect.mp3');
-    this.load.audio('missSound', 'assets/sounds/miss.mp3');
+    this.load.audio('collectSound', 'assets/sounds/collect.wav');
+    this.load.audio('missSound', 'assets/sounds/miss.wav');
     this.load.audio('bgMusic', 'assets/sounds/bgMusic.mp3');
 }
 
+
 function create() {
-    this.add.image(400, 300, 'greenFlower');
+    this.muteButton = this.add.text(700, 16, 'Mute', { fontSize: '32px', fill: '#000' });
+    this.muteButton.setInteractive();
+    this.muteButton.on('pointerdown', function () {
+        this.toggleMute();
+    }, this);
+
+    this.bgMusic = this.sound.add('bgMusic');
+    this.bgMusic.play({ loop: true, volume: 0.5 });
+
+    this.collectSound = this.sound.add('collectSound');
+    this.missSound = this.sound.add('missSound');
+
+    var greenFlower = this.add.image(400, 300, 'greenFlower');
+    greenFlower.setScale(0.1);
     this.score = 0;
     this.timer = 30;
 
@@ -46,6 +67,7 @@ function create() {
         callbackScope: this,
         loop: true
     });
+    console.log("I ran very well")
 }
 
 function update() {
@@ -66,15 +88,16 @@ function spawnItem() {
 
     if (itemType <= 7) {
         newItem = this.itemsGroup.create(x, 0, 'greenFlower');
+        newItem.setDisplaySize(100, 100);
         newItem.points = 10;
     } else if (itemType <= 9) {
         newItem = this.itemsGroup.create(x, 0, 'blueFlower');
+        newItem.setDisplaySize(120, 120);
         newItem.points = 50;
-        newItem.setScale(0.7);
     } else {
         newItem = this.itemsGroup.create(x, 0, 'goldFlower');
+        newItem.setDisplaySize(150, 150);
         newItem.points = 100;
-        newItem.setScale(0.9);
         newItem.specialEffect = 'freezeTimer';
     }
 
@@ -91,6 +114,8 @@ function spawnItem() {
 function collectItem(item) {
     this.score += item.points;
     this.scoreText.setText('Score: ' + this.score);
+
+    this.collectSound.play();
 
     if (item.specialEffect === 'freezeTimer') {
         this.freezeTimer();
@@ -118,13 +143,29 @@ function updateTimer() {
 
 function endGame() {
     this.time.removeAllEvents();
+    this.itemsGroup.clear(true, true);
 
-    this.add.text(300, 250, 'Game Over!', { fontSize: '64px', fill: '#f00' });
-    this.add.text(300, 320, 'Final Score: ' + this.score, { fontSize: '32px', fill: '#000' });
+    this.add.text(300, 200, 'Game Over!', { fontSize: '64px', fill: '#f00' });
+    this.add.text(300, 270, 'Your Score: ' + this.score, { fontSize: '32px', fill: '#000' });
 
-    this.time.delayedCall(3000, function () {
+    var highScore = localStorage.getItem('highScore') || 0;
+    if (this.score > highScore) {
+        highScore = this.score;
+        localStorage.setItem('highScore', highScore);
+    }
+    this.add.text(300, 320, 'High Score: ' + highScore, { fontSize: '32px', fill: '#000' });
+
+    var restartButton = this.add.text(300, 400, 'Restart', { fontSize: '32px', fill: '#00f' });
+    restartButton.setInteractive();
+    restartButton.on('pointerdown', function () {
         this.scene.restart();
-    }, [], this);
+    }, this);
+
+    var shareButton = this.add.text(300, 450, 'Share', { fontSize: '32px', fill: '#00f' });
+    shareButton.setInteractive();
+    shareButton.on('pointerdown', function () {
+        alert('Share your score: ' + this.score);
+    }, this);
 }
 
 function freezeTimer() {
@@ -134,4 +175,18 @@ function freezeTimer() {
         },
         callbackScope: this
     });
+}
+
+function toggleMute() {
+    if (this.bgMusic.isPlaying) {
+        this.bgMusic.pause();
+        this.collectSound.setMute(true);
+        this.missSound.setMute(true);
+        this.muteButton.setText('Unmute');
+    } else {
+        this.bgMusic.resume();
+        this.collectSound.setMute(false);
+        this.missSound.setMute(false);
+        this.muteButton.setText('Mute');
+    }
 }
